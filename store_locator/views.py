@@ -29,7 +29,7 @@ def get_lat_long(request):
     #   r = urllib2.urlopen("http://maps.google.com/maps/geo?output=csv&%s" % args)
     # So we must use the way more complicated v3 api to fake the simple v2 csv
     # response:
-    url = 'https://maps.googleapis.com/maps/api/geocode/json?sensor=false&address=%s' % args
+    url = 'https://maps.googleapis.com/maps/api/geocode/json?sensor=false&%s' % args
     data = json.loads(urllib2.urlopen(url).read())
     try:
         location = data['results'][0]['geometry']['location']
