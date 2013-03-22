@@ -1,5 +1,5 @@
 import urllib2
-import urllib 
+import urllib
 import json
 
 from django.core.urlresolvers import reverse
@@ -20,12 +20,24 @@ def show_locations(request):
     }
     return render_to_response('store_locator/store_locator_map_view.html', params, context_instance=RequestContext(request))
 
+
 def get_lat_long(request):
     if not request.GET.get('q'):
         return HttpResponse('')
-    args = urllib.urlencode({'q': request.GET.get('q')})
-    r = urllib2.urlopen("http://maps.google.com/maps/geo?output=csv&%s" % args)
-    return HttpResponse(r.read())
+    args = urllib.urlencode({'address': request.GET.get('q')})
+    # This no longer works:
+    #   r = urllib2.urlopen("http://maps.google.com/maps/geo?output=csv&%s" % args)
+    # So we must use the way more complicated v3 api to fake the simple v2 csv
+    # response:
+    url = 'https://maps.googleapis.com/maps/api/geocode/json?sensor=false&address=%s' % args
+    data = json.loads(urllib2.urlopen(url).read())
+    try:
+        location = data['results'][0]['geometry']['location']
+        lat, lng = location['lat'], location['lng']
+    except (KeyError, IndexError):
+        lat, lng = 0, 0
+    return HttpResponse(",".join((str(x) for x in (0, 0, lat, lng))))
+
 
 def get_locations(request):
     try:
@@ -35,7 +47,7 @@ def get_locations(request):
         location_type = request.GET.get('location_type', '0')
     except:
         return HttpResponse('[]')
-    
+
     locations = Location.objects.near(latitude, longitude, distance)
     if location_type:
         locations = [l for l in locations if location_type in [str(t[0]) for t in l.location_types.values_list('id')]]
